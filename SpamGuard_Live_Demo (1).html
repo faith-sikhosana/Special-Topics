@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SpamGuard — ML-Based Spam Classifier</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0a0b; --bg2:#151517; --card:rgba(255,255,255,0.045); --border:rgba(255,255,255,0.09);
+    --text:#f4f6fb; --dim:#a8a8ad; --dim2:#6e6e74;
+    --brand:#d0101f; --brand2:#7a0c18; --safe:#d9d9d9; --danger:#ff3b48; --warn:#d4505b;
+    --sans:'Space Grotesk',ui-sans-serif,system-ui,sans-serif; --mono:'IBM Plex Mono',ui-monospace,Consolas,monospace;
+    padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px); box-sizing:border-box;
+  }
+  *{box-sizing:border-box;} html{scroll-behavior:smooth; scroll-padding-top:70px;}
+  body{
+    margin:0; background:var(--bg); color:var(--text); font-family:var(--sans);
+    background-image:
+      radial-gradient(900px 500px at 10% -5%, rgba(200,16,30,0.14), transparent 60%),
+      radial-gradient(800px 600px at 100% 15%, rgba(122,12,24,0.13), transparent 55%),
+      radial-gradient(700px 500px at 50% 110%, rgba(217,217,217,0.08), transparent 55%);
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--brand);} .wrap{max-width:1040px; margin:0 auto; padding:0 24px;}
+
+  nav{position:sticky; top:0; z-index:50; backdrop-filter:blur(14px); background:rgba(10,10,11,0.72); border-bottom:1px solid var(--border);}
+  nav .inner{display:flex; align-items:center; justify-content:space-between; padding:14px 24px; max-width:1040px; margin:0 auto;}
+  .brand{display:flex; align-items:center; gap:9px; font-weight:600; font-size:16px; letter-spacing:-0.01em;}
+  .navlinks{display:flex; gap:26px; font-size:14px; color:var(--dim);}
+  .navlinks a{color:var(--dim); text-decoration:none;} .navlinks a:hover{color:var(--text);}
+  .navcta{font-family:var(--mono); font-size:12.5px; background:var(--brand); color:#fff; padding:8px 15px; border-radius:8px; text-decoration:none; font-weight:600;}
+  @media (max-width:700px){ .navlinks{display:none;} }
+
+  header.hero{padding:88px 0 56px; text-align:center;}
+  .eyebrow-badge{display:inline-flex; align-items:center; gap:8px; font-family:var(--mono); font-size:12.5px; color:var(--brand); background:rgba(200,16,30,0.08); border:1px solid rgba(200,16,30,0.25); padding:6px 14px; border-radius:999px; margin-bottom:26px;}
+  .dot{width:6px; height:6px; border-radius:50%; background:var(--safe); box-shadow:0 0 8px var(--safe);}
+  h1{font-size:clamp(42px,7vw,68px); line-height:1.03; font-weight:700; letter-spacing:-0.02em; margin:0 0 20px;}
+  h1 .grad{background:linear-gradient(100deg,var(--brand),var(--brand2)); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  .lede{font-size:18px; color:var(--dim); max-width:56ch; margin:0 auto 34px; line-height:1.6;}
+  .hero-ctas{display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin-bottom:52px;}
+  .btn{font-family:var(--mono); font-size:14px; font-weight:500; padding:13px 24px; border-radius:10px; text-decoration:none; cursor:pointer; border:1px solid transparent; transition:transform .12s ease, filter .15s ease;}
+  .btn.primary{background:linear-gradient(100deg,var(--brand),var(--brand2)); color:#fff;}
+  .btn.ghost{background:transparent; border-color:var(--border); color:var(--text);}
+  .btn:hover{filter:brightness(1.1);} .btn:active{transform:translateY(1px);}
+
+  .hero-stats{display:flex; justify-content:center; gap:0; flex-wrap:wrap; border:1px solid var(--border); border-radius:16px; overflow:hidden; background:var(--card); max-width:640px; margin:0 auto;}
+  .hstat{flex:1; min-width:130px; padding:20px 16px; text-align:center; border-right:1px solid var(--border);}
+  .hstat:last-child{border-right:none;}
+  .hstat .n{font-family:var(--mono); font-size:26px; font-weight:600; color:var(--brand);}
+  .hstat .l{font-size:12px; color:var(--dim); margin-top:4px;}
+
+  section{padding:64px 0;}
+  .section-tag{font-family:var(--mono); font-size:12.5px; color:var(--brand2); margin:0 0 10px;}
+  h2{font-size:clamp(26px,4vw,34px); font-weight:600; letter-spacing:-0.01em; margin:0 0 14px;}
+  .section-lede{color:var(--dim); max-width:60ch; margin:0 0 36px; font-size:15.5px; line-height:1.6;}
+
+  .card{background:var(--card); border:1px solid var(--border); border-radius:16px; padding:30px;}
+
+  textarea{width:100%; min-height:104px; resize:vertical; background:var(--bg2); border:1px solid var(--border); border-radius:11px; color:var(--text); font-family:var(--mono); font-size:14.5px; line-height:1.55; padding:15px 17px; outline:none; transition:border-color .15s ease;}
+  textarea:focus{border-color:var(--brand);} textarea::placeholder{color:var(--dim2);}
+  .chips{display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 20px;}
+  .chip{font-family:var(--mono); font-size:12.5px; color:var(--dim); background:var(--bg2); border:1px solid var(--border); padding:7px 13px; border-radius:999px; cursor:pointer; transition:.15s ease;}
+  .chip:hover{border-color:var(--brand); color:var(--text);}
+  .row{display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .keyhint{font-family:var(--mono); font-size:12px; color:var(--dim2);}
+
+  #result{display:none; margin-top:28px; padding-top:28px; border-top:1px solid var(--border);}
+  #result.show{display:block;}
+  .verdict-row{display:flex; align-items:center; gap:28px; flex-wrap:wrap; margin-bottom:24px;}
+  .gauge{position:relative; width:104px; height:104px; flex-shrink:0;}
+  .gauge svg{transform:rotate(-90deg);}
+  .gauge-label{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-weight:600; font-size:18px;}
+  .verdict-badge{font-family:var(--mono); font-weight:600; font-size:15px; letter-spacing:.03em; padding:6px 14px; border-radius:8px; display:inline-block; margin-bottom:6px;}
+  .verdict-badge.safe{background:rgba(217,217,217,0.12); color:var(--safe); border:1px solid rgba(217,217,217,0.35);}
+  .verdict-badge.danger{background:rgba(255,59,72,0.12); color:var(--danger); border:1px solid rgba(255,59,72,0.35);}
+  .verdict-sub{color:var(--dim); font-size:13.5px;}
+
+  .annotated{font-family:var(--mono); font-size:14.5px; line-height:1.7; background:var(--bg2); border:1px solid var(--border); border-radius:11px; padding:17px 19px; white-space:pre-wrap; word-break:break-word; margin-bottom:20px;}
+  mark{border-radius:4px; padding:0 2px; color:inherit;}
+  .signals-label{font-family:var(--mono); font-size:12.5px; color:var(--dim); margin-bottom:10px;}
+  .signals{display:flex; flex-wrap:wrap; gap:8px;}
+  .signal-tag{font-family:var(--mono); font-size:12px; padding:5px 10px; border-radius:7px; border:1px solid;}
+  .signal-tag.danger{color:var(--danger); border-color:rgba(255,59,72,0.35); background:rgba(255,59,72,0.08);}
+  .signal-tag.safe{color:var(--safe); border-color:rgba(217,217,217,0.35); background:rgba(217,217,217,0.08);}
+
+  .timeline{display:grid; grid-template-columns:repeat(3,1fr); gap:16px;}
+  .tstep{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px;}
+  .tstep .tn{font-family:var(--mono); color:var(--brand); font-size:12px; margin-bottom:10px;}
+  .tstep h3{font-size:15.5px; margin:0 0 6px; font-weight:600;}
+  .tstep p{font-size:13.5px; color:var(--dim); margin:0; line-height:1.5;}
+  @media (max-width:760px){ .timeline{grid-template-columns:1fr 1fr;} }
+  @media (max-width:520px){ .timeline{grid-template-columns:1fr;} }
+
+  .perf-grid{display:grid; grid-template-columns:1.1fr 1fr; gap:20px;}
+  @media (max-width:760px){ .perf-grid{grid-template-columns:1fr;} }
+  .metric-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:14px;}
+  .metric{background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:18px;}
+  .metric .n{font-family:var(--mono); font-size:24px; font-weight:600; color:var(--brand);}
+  .metric .l{font-size:12px; color:var(--dim); margin-top:4px;}
+  .cm-title{font-family:var(--mono); font-size:12.5px; color:var(--dim); margin-bottom:12px;}
+  .cm-grid{display:grid; grid-template-columns:auto 1fr 1fr; gap:6px; align-items:center; font-family:var(--mono); font-size:12px;}
+  .cm-cell{padding:14px; border-radius:9px; text-align:center; font-size:18px; font-weight:600;}
+  .cm-h{color:var(--dim); text-align:center; font-size:11px;}
+  .cm-side{color:var(--dim); writing-mode:vertical-rl; transform:rotate(180deg); font-size:11px; text-align:center; padding-right:4px;}
+
+  .stack{display:flex; flex-wrap:wrap; gap:10px; margin-top:10px;}
+  .stack-item{font-family:var(--mono); font-size:12.5px; color:var(--dim); background:var(--bg2); border:1px solid var(--border); padding:7px 13px; border-radius:999px;}
+
+  footer{border-top:1px solid var(--border); padding:36px 0 60px; color:var(--dim2); font-size:13px;}
+  footer .foot-row{display:flex; justify-content:space-between; flex-wrap:wrap; gap:14px;}
+  footer a{color:var(--dim);}
+</style>
+
+<style>
+body{background-image:repeating-linear-gradient(115deg,rgba(255,255,255,.028) 0 2px,transparent 2px 52px),repeating-linear-gradient(20deg,rgba(255,255,255,.02) 0 1px,transparent 1px 64px),radial-gradient(900px 520px at 8% -5%,rgba(200,16,30,.26),transparent 60%),radial-gradient(700px 500px at 100% 100%,rgba(122,12,24,.3),transparent 60%);}
+.frame{display:inline-block;border:5px solid #c8102e;padding:30px 46px 22px;margin-bottom:26px;max-width:100%}
+.frame h1{margin:0}
+h1 .grad{background:none;color:#ff3b48;-webkit-text-fill-color:#ff3b48}
+.section-tag{color:#ff3b48}
+.tstep .tn{width:32px;height:32px;border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;font-weight:600}
+.tstep{border-left:3px solid var(--brand)}
+.card{border-top:3px solid var(--brand)}
+.hstat .n,.metric .n{color:#fff}
+.tabs{display:flex;gap:8px;margin-bottom:18px}
+.tab{font-family:var(--mono);font-size:13px;background:var(--bg2);color:var(--dim);border:1px solid var(--border);padding:8px 16px;border-radius:8px;cursor:pointer}
+.tab.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.verdict-badge.warn{background:rgba(212,80,91,.14);color:var(--warn);border:1px solid rgba(212,80,91,.4)}
+.meter{position:relative;height:8px;border-radius:99px;margin:14px 0 6px;background:linear-gradient(90deg,#d9d9d9 0 35%,#8a0f1e 35% 65%,#e1111f 65%);width:260px;max-width:100%}
+.pin{position:absolute;top:-5px;width:4px;height:18px;border-radius:2px;background:#fff;box-shadow:0 0 0 2px #0a0a0b;transition:left .4s ease}
+.ml{display:flex;justify-content:space-between;width:260px;max-width:100%;font-family:var(--mono);font-size:10.5px;color:var(--dim2)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:6px}@media(max-width:700px){.grid2{grid-template-columns:1fr}}
+.flag{border-left:3px solid var(--danger);background:var(--bg2);padding:9px 12px;border-radius:0 8px 8px 0;margin-bottom:8px;font-size:13px}
+.flag.good{border-color:var(--safe)}.flag b{display:block;font-family:var(--mono);font-size:12.5px}.flag span{color:var(--dim)}
+.bar{display:grid;grid-template-columns:90px 1fr 44px;gap:8px;align-items:center;font-family:var(--mono);font-size:12px;margin-bottom:7px;color:var(--dim)}
+.bar i{display:block;height:8px;border-radius:4px}
+mark{cursor:pointer}mark.ign{background:transparent!important;text-decoration:line-through;opacity:.55}
+.stats3{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 14px}.stats3 div{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 16px;font-family:var(--mono);font-size:12px;color:var(--dim)}.stats3 b{display:block;font-size:20px;color:#fff}
+.hrow,.brow{display:flex;gap:12px;align-items:center;padding:9px 0;border-top:1px solid var(--border);font-size:13px}
+.hrow span.t,.brow span.t{flex:1;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pill{font-family:var(--mono);font-size:11px;padding:3px 9px;border-radius:6px;min-width:92px;text-align:center}
+.pill.spam{background:var(--danger);color:#fff}.pill.sus{background:#7a0c18;color:#fff}.pill.safe{background:#d9d9d9;color:#111}
+#batchInput{min-height:150px}.btn.primary{border:none}
+</style>
+</head>
+<body>
+
+<nav><div class="inner">
+  <div class="brand">🛡️ SpamGuard</div>
+  <div class="navlinks">
+    <a href="#demo">Live demo</a><a href="#method">Methodology</a><a href="#performance">Performance</a>
+  </div>
+  <a class="navcta" href="#demo">Try it →</a>
+</div></nav>
+
+<div class="wrap">
+  <header class="hero">
+    <div class="frame"><h1>Catch spam before<br>it catches <span class="grad">you</span>.</h1></div>
+    <p class="lede">SpamGuard is a Bernoulli Naive Bayes classifier trained on real SMS spam data, built to give everyday users a transparent, explainable alternative to the black-box filters run by big tech.</p>
+    <div class="hero-ctas">
+      <a class="btn primary" href="#demo">Try the live demo</a>
+      <a class="btn ghost" href="#method">See how it works</a>
+    </div>
+    <div class="hero-stats">
+      <div class="hstat"><div class="n" id="hAcc">–</div><div class="l">accuracy</div></div>
+      <div class="hstat"><div class="n" id="hPrec">–</div><div class="l">precision</div></div>
+      <div class="hstat"><div class="n" id="hMsgs">–</div><div class="l">training messages</div></div>
+    </div>
+  </header>
+</div>
+
+<section id="demo"><div class="wrap">
+  <p class="section-tag">Live demo</p>
+  <h2>Test it on a real message</h2>
+  <p class="section-lede">Type or paste an SMS or email. SpamGuard scans as you type, combining the Naive Bayes word model with explainable red-flag checks (links, phone numbers, urgency, phishing wording). All in your browser.</p>
+  <div class="card">
+    <div class="tabs"><button class="tab on" data-t="single">Single scan</button><button class="tab" data-t="batch">Batch scan</button></div>
+    <div id="single">
+      <textarea id="msgInput" placeholder="Type or paste a message to scan…"></textarea>
+      <div class="chips">
+        <span class="chip" data-msg="WINNER!! You have been selected to receive a £900 prize reward! To claim call 09061701461. Claim code KL341. Valid 12 hours only.">Prize scam</span>
+        <span class="chip" data-msg="Hey, are we still meeting for lunch tomorrow? Let me know what time works.">Friend's text</span>
+        <span class="chip" data-msg="Dear customer, your bank account has been suspended due to unusual activity. Verify your password immediately at secure-bank-login.com or it will be closed.">Phishing email</span>
+        <span class="chip" data-msg="Free money!!! Click here now">Short spam</span>
+        <span class="chip" data-msg="Sorry I'll call you later, I'm in a meeting right now.">Everyday message</span>
+      </div>
+      <div class="row"><button class="btn ghost" id="clearBtn">Clear</button><span class="keyhint" id="counter">Live scan: starts as you type</span></div>
+      <div id="result">
+        <div class="verdict-row">
+          <div class="gauge"><svg width="104" height="104" viewBox="0 0 104 104"><circle cx="52" cy="52" r="45" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="9"/><circle id="gaugeArc" cx="52" cy="52" r="45" fill="none" stroke="#d9d9d9" stroke-width="9" stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="283"/></svg><div class="gauge-label" id="gaugeLabel">–</div></div>
+          <div class="verdict-text"><div class="verdict-badge safe" id="verdictBadge">CLEAR</div><div class="verdict-sub" id="verdictSub"></div>
+            <div class="meter"><div class="pin" id="pin"></div></div><div class="ml"><span>safe</span><span>suspicious</span><span>spam</span></div></div>
+        </div>
+        <div class="annotated" id="annotated"></div>
+        <div class="keyhint" style="margin:-10px 0 18px">Tip: click a highlighted word to see the verdict without it.</div>
+        <div class="grid2"><div><div class="signals-label">Red flags</div><div id="flags"></div></div><div><div class="signals-label">Word influence</div><div id="bars"></div></div></div>
+      </div>
+    </div>
+    <div id="batch" style="display:none">
+      <textarea id="batchInput" placeholder="Paste several messages, one per line…"></textarea>
+      <div class="row" style="margin:14px 0"><button class="btn primary" id="batchBtn">Scan all</button><button class="btn ghost" id="csvBtn">Export CSV</button></div>
+      <div class="keyhint" id="csvMsg"></div><textarea id="csvBox" readonly style="display:none;min-height:110px;margin:10px 0 16px"></textarea>
+      <div id="batchOut"></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:20px"><div class="cm-title">Session activity</div>
+    <div class="stats3"><div><b id="sN">0</b>scanned</div><div><b id="sS">0</b>flagged</div><div><b id="sU">0</b>suspicious</div><div><b id="sC">0</b>clear</div></div>
+    <div id="history"><span class="keyhint">Scans you run will be logged here.</span></div></div>
+</div></section>
+
+<section id="method"><div class="wrap">
+  <p class="section-tag">Methodology</p>
+  <h2>Built the CRISP-DM way</h2>
+  <p class="section-lede">The project follows CRISP-DM, the standard six-step process for data mining and machine learning work, end to end.</p>
+  <div class="timeline">
+    <div class="tstep"><div class="tn">01</div><h3>Business understanding</h3><p>Define the problem, confirm the goal of a transparent classifier, and set SMART objectives.</p></div>
+    <div class="tstep"><div class="tn">02</div><h3>Data understanding</h3><p>Explore the SMS Spam Collection dataset and inspect its spam/ham balance and quality.</p></div>
+    <div class="tstep"><div class="tn">03</div><h3>Data preparation</h3><p>Clean text, remove noise, de-duplicate, and split into training and test sets.</p></div>
+    <div class="tstep"><div class="tn">04</div><h3>Modeling</h3><p>Train a Bernoulli Naive Bayes classifier — the top performer in prior published studies.</p></div>
+    <div class="tstep"><div class="tn">05</div><h3>Evaluation</h3><p>Measure accuracy, precision, recall, and F1 on a held-out test set against SMART targets.</p></div>
+    <div class="tstep"><div class="tn">06</div><h3>Deployment</h3><p>Wrap the trained model in this interface, so anyone can test a message instantly.</p></div>
+  </div>
+</div></section>
+
+<section id="performance"><div class="wrap">
+  <p class="section-tag">Performance</p>
+  <h2>Evaluated against SMART targets</h2>
+  <p class="section-lede">The proposal's objective was ≥90% accuracy on held-out data. The trained model clears that bar comfortably.</p>
+  <div class="perf-grid">
+    <div class="card">
+      <div class="metric-grid">
+        <div class="metric"><div class="n" id="statAcc">–</div><div class="l">accuracy</div></div>
+        <div class="metric"><div class="n" id="statPrec">–</div><div class="l">precision</div></div>
+        <div class="metric"><div class="n" id="statRec">–</div><div class="l">recall</div></div>
+        <div class="metric"><div class="n" id="statF1">–</div><div class="l">F1 score</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="cm-title">Confusion matrix — test set</div>
+      <div class="cm-grid">
+        <div></div><div class="cm-h">Predicted ham</div><div class="cm-h">Predicted spam</div>
+        <div class="cm-side">Actual ham</div><div class="cm-cell" id="cmTN" style="background:rgba(217,217,217,0.14); color:var(--safe);">–</div><div class="cm-cell" id="cmFP" style="background:rgba(255,59,72,0.14); color:var(--danger);">–</div>
+        <div class="cm-side">Actual spam</div><div class="cm-cell" id="cmFN" style="background:rgba(255,59,72,0.14); color:var(--danger);">–</div><div class="cm-cell" id="cmTP" style="background:rgba(217,217,217,0.14); color:var(--safe);">–</div>
+      </div>
+    </div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <p class="section-tag">Under the hood</p>
+  <h2>Scope &amp; tech stack</h2>
+  <p class="section-lede">Classical, explainable machine learning by design — no neural networks, no live email/SMS integration, English-language messages only.</p>
+  <div class="stack">
+    <span class="stack-item">Python</span><span class="stack-item">pandas</span><span class="stack-item">scikit-learn</span>
+    <span class="stack-item">Bernoulli Naive Bayes</span><span class="stack-item">Rule-based heuristics</span><span class="stack-item">SMS Spam Collection dataset</span>
+    <span class="stack-item">HTML / CSS / JS</span>
+  </div>
+</div></section>
+
+<script>
+const MODEL = {"base":-7.126,"weights":{"claim":6.764,"prize":6.636,"guaranteed":5.98,"cs":5.677,"www":5.635,"awarded":5.588,"landline":5.327,"attempt":5.298,"tone":5.267,"collection":5.17,"valid":5.17,"bonus":5.136,"uk":5.126,"land":5.026,"ringtone":5.026,"weekly":4.987,"sae":4.904,"urgent":4.89,"national":4.86,"nokia":4.847,"entry":4.814,"http":4.766,"mob":4.716,"quiz":4.716,"vouchers":4.716,"winner":4.716,"congratulations":4.549,"tones":4.549,"service":4.534,"operator":4.487,"opt":4.487,"code":4.443,"dating":4.421,"poly":4.421,"win":4.402,"ipod":4.35,"pobox":4.35,"camcorder":4.275,"complimentary":4.275,"expires":4.275,"specially":4.275,"ts":4.275,"unsubscribe":4.275,"wkly":4.275,"award":4.211,"caller":4.211,"network":4.211,"video":4.211,"draw":4.201,"charged":4.193,"custcare":4.193,"freemsg":4.193,"identifier":4.193,"mobiles":4.193,"mobile":4.159,"await":4.121,"txt":4.117,"biz":4.105,"dogging":4.105,"rental":4.105,"representative":4.105,"reward":4.105,"sp":4.105,"rate":4.037,"music":4.022,"awaiting":4.008,"ldew":4.008,"std":4.008,"tenerife":4.008,"txtauction":4.008,"flights":3.901,"loyalty":3.901,"maximize":3.901,"polys":3.901,"redeemed":3.901,"standard":3.901,"txts":3.901,"unsub":3.901,"delivery":3.855,"apply":3.847,"todays":3.847,"club":3.793,"receive":3.783,"camera":3.761,"selected":3.749,"tc":3.727,"voucher":3.727,"row":3.657,"cash":3.649,"latest":3.639,"contact":3.612,"po":3.6,"content":3.581,"private":3.581,"gt":-3.56,"lt":-3.56,"won":3.516,"final":3.508,"services":3.508,"statement":3.5,"valued":3.5,"shows":3.474,"customer":3.456,"direct":3.411,"ending":3.411,"games":3.411,"sex":3.411,"com":3.394,"line":3.358,"offers":3.315,"rates":3.315,"box":3.271,"lor":-3.256,"enter":3.251,"player":3.251,"orange":3.22,"cd":3.208,"phones":3.208,"user":3.208,"collect":3.194,"xmas":3.162,"da":-3.118,"offer":3.111,"tried":3.1,"comp":3.094,"dvd":3.089,"txting":3.089,"holiday":3.08,"gift":3.067,"yr":3.034,"auction":3.006,"balance":3.006,"pounds":2.963,"free":2.943,"stop":2.928,"information":2.909,"store":2.909,"update":2.909,"wk":2.901,"net":2.814,"come":-2.807,"points":2.806,"discount":2.802,"info":2.802,"mates":2.802,"welcome":2.802,"chance":2.759,"order":2.756,"worth":2.74,"currently":2.718,"chat":2.716,"word":2.716,"later":-2.711,"colour":2.664,"cost":2.661,"reply":2.634,"yeah":-2.617,"cos":-2.589,"say":-2.589,"numbers":2.583,"replying":2.548,"terms":2.548,"mins":2.538,"doing":-2.53,"said":-2.53,"choose":2.514,"ask":-2.499,"anytime":2.494,"pics":2.494,"really":-2.483,"texts":2.464,"sms":2.458,"lol":-2.418,"join":2.408,"asap":2.4,"fantastic":2.395,"secret":2.395,"weekends":2.395,"sure":-2.365,"dun":-2.329,"hot":2.312,"weeks":2.291,"live":2.262,"text":2.261,"cancel":2.26,"going":-2.257,"morning":-2.233,"price":2.221,"pic":2.215,"haha":-2.212,"home":-2.207,"bt":2.182,"wat":-2.181,"log":2.171,"match":2.171,"gonna":-2.17,"sleep":-2.17,"calls":2.157,"sexy":2.151,"min":2.131,"area":2.108,"credit":2.108,"fancy":2.108,"msgs":2.108,"forwarded":2.104,"immediately":2.104,"lar":-2.103,"yup":-2.103,"feel":-2.08,"double":2.036,"questions":2.036,"unlimited":2.036,"coming":-2.032,"thk":-2.032,"amp":-2.007,"nice":-2.007,"thinks":1.989,"bit":-1.981,"fine":-1.981,"ll":-1.974,"ok":-1.957,"msg":1.956,"went":-1.955,"lucky":1.954,"new":1.91,"car":-1.9,"didn":-1.9,"finish":-1.9,"having":-1.9,"surprise":1.881,"way":-1.88,"dat":-1.872,"thats":-1.872,"told":-1.872,"ah":-1.843,"liao":-1.843,"meeting":-1.843,"play":1.831,"sorry":-1.827,"happy":-1.82,"trying":1.81,"did":-1.785,"better":-1.782,"eat":-1.782,"long":-1.782,"real":1.782,"easy":1.778,"got":-1.773,"oh":-1.752,"dinner":-1.75,"dunno":-1.75,"gud":-1.75,"lunch":-1.75,"probably":-1.75,"wait":-1.74,"early":-1.716,"forgot":-1.716,"person":-1.716,"important":1.704,"minute":1.703,"charge":1.702,"computer":1.699,"news":1.699,"age":1.698,"extra":1.698,"starting":1.698,"ends":1.697,"invited":1.697,"personal":1.697,"bus":-1.682,"job":-1.682,"quite":-1.682,"thing":-1.653,"aight":-1.647,"lei":-1.647,"sweet":-1.647,"thanx":-1.647,"watching":-1.647,"wif":-1.647,"account":1.639,"week":1.639,"wan":-1.616,"bed":-1.61,"den":-1.61,"hour":-1.61,"juz":-1.61,"leh":-1.61,"remember":-1.61,"messages":1.596,"answer":1.583,"special":1.583,"didnt":-1.572,"jus":-1.572,"lot":-1.572,"problem":-1.572,"yo":-1.572,"cum":1.566,"luck":1.566,"saturday":1.566,"actually":-1.533,"dad":-1.533,"guy":-1.533,"haf":-1.533,"okay":-1.533,"shall":-1.533,"nyt":1.515,"street":1.515,"tickets":1.515,"phone":1.507,"abt":-1.492,"aft":-1.492,"ard":-1.492,"oso":-1.492,"princess":-1.492,"room":-1.492,"saw":-1.492,"til":-1.492,"watch":-1.492,"working":-1.492,"worry":-1.492,"able":-1.449,"fuck":-1.449,"goes":-1.449,"havent":-1.449,"noe":-1.449,"plan":-1.449,"sch":-1.449,"smile":-1.449,"tmr":-1.449,"girls":1.448,"pm":1.448,"ur":1.445,"details":1.44,"hope":-1.429,"message":1.423,"think":-1.413,"congrats":1.41,"alright":-1.404,"bring":-1.404,"kiss":-1.404,"oredi":-1.404,"tot":-1.404,"wanted":-1.404,"wont":-1.404,"ya":-1.385,"pass":1.36,"send":1.358,"afternoon":-1.357,"says":-1.357,"school":-1.357,"times":-1.357,"wake":-1.357,"making":-1.308,"neva":-1.308,"nite":-1.308,"online":-1.308,"world":-1.308,"calling":1.292,"fone":1.29,"normal":1.29,"starts":1.29,"valentines":1.29,"let":-1.282,"number":1.264,"class":-1.26,"boy":-1.257,"change":-1.257,"driving":-1.257,"dude":-1.257,"family":-1.257,"food":-1.257,"gd":-1.257,"mail":-1.257,"mean":-1.257,"pa":-1.257,"rite":-1.257,"sad":-1.257,"thinking":-1.257,"thought":-1.233,"work":-1.227,"frnd":1.226,"fun":1.21,"stuff":-1.206,"things":-1.206,"hav":-1.202,"huh":-1.202,"mum":-1.202,"pain":-1.202,"run":-1.202,"saying":-1.202,"tomo":-1.202,"don":-1.19,"pick":-1.19,"speak":1.178,"cool":-1.177,"soon":-1.171,"tv":1.171,"break":1.159,"game":1.159,"ill":-1.148,"waiting":1.147,"coz":-1.145,"face":-1.145,"finished":-1.145,"goin":-1.145,"hair":-1.145,"happen":-1.145,"leaving":-1.145,"mayb":-1.145,"means":-1.145,"nope":-1.145,"sis":-1.145,"xxx":1.143,"house":-1.118,"visit":1.108,"love":-1.104,"wanna":1.097,"half":1.091,"question":1.091,"tonight":-1.09,"cause":-1.084,"decimal":-1.084,"doesn":-1.084,"drive":-1.084,"mah":-1.084,"makes":-1.084,"second":-1.084,"tho":-1.084,"words":-1.084,"plus":1.079,"xx":1.079,"book":1.07,"end":1.059,"hey":-1.021,"awesome":-1.019,"beautiful":-1.019,"carlos":-1.019,"chikku":-1.019,"college":-1.019,"decided":-1.019,"fr":-1.019,"head":-1.019,"hurt":-1.019,"lesson":-1.019,"loving":-1.019,"mate":-1.019,"mom":-1.019,"outside":-1.019,"smth":-1.019,"took":-1.019,"help":1.011,"start":1.006,"hit":1.003,"mind":-0.988,"late":-0.978,"reach":0.963,"leave":-0.955,"left":-0.952,"shit":-0.952,"comin":-0.95,"drink":-0.95,"fucking":-0.95,"happened":-0.95,"hows":-0.95,"jay":-0.95,"plz":-0.95,"prob":-0.95,"sleeping":-0.95,"test":-0.95,"type":-0.95,"wil":-0.95,"wrong":-0.95,"like":-0.925,"shop":0.923,"sir":-0.916,"night":-0.912,"pub":0.907,"trip":0.907,"shopping":0.887,"takes":0.884,"wid":0.884,"cut":-0.876,"far":-0.876,"friday":-0.876,"friendship":-0.876,"hee":-0.876,"hungry":-0.876,"kind":-0.876,"laptop":-0.876,"okie":-0.876,"open":-0.876,"party":-0.876,"point":-0.876,"project":-0.876,"seeing":-0.876,"seen":-0.876,"tired":-0.876,"touch":-0.876,"treat":-0.876,"hours":0.849,"cheap":0.846,"lookin":0.846,"men":0.846,"red":0.846,"round":0.846,"sign":0.846,"looking":0.81,"luv":0.805,"weekend":0.805,"bad":-0.797,"office":-0.797,"abiola":-0.795,"ago":-0.795,"ar":-0.795,"boytoy":-0.795,"company":-0.795,"course":-0.795,"crave":-0.795,"darlin":-0.795,"earlier":-0.795,"eh":-0.795,"felt":-0.795,"gone":-0.795,"goodmorning":-0.795,"gotta":-0.795,"lets":-0.795,"meant":-0.795,"meh":-0.795,"pretty":-0.795,"sea":-0.795,"sister":-0.795,"sun":-0.795,"swing":-0.795,"talking":-0.795,"whats":-0.795,"wonderful":-0.795,"yar":-0.795,"thanks":0.767,"called":-0.754,"haven":-0.754,"right":-0.75,"crazy":0.739,"good":-0.736,"buy":-0.714,"glad":0.713,"lose":0.713,"months":0.713,"search":0.713,"wish":-0.711,"thank":-0.71,"wot":-0.71,"case":-0.708,"catch":-0.708,"difficult":-0.708,"doin":-0.708,"dreams":-0.708,"frens":-0.708,"gets":-0.708,"grins":-0.708,"gym":-0.708,"ha":-0.708,"hmm":-0.708,"hmmm":-0.708,"hold":-0.708,"kate":-0.708,"knw":-0.708,"lazy":-0.708,"march":-0.708,"mrt":-0.708,"mu":-0.708,"picking":-0.708,"plans":-0.708,"shower":-0.708,"smiling":-0.708,"snow":-0.708,"understand":-0.708,"wana":-0.708,"wen":-0.708,"wine":-0.708,"away":0.698,"enjoy":0.685,"friends":-0.68,"card":0.665,"came":-0.663,"pay":-0.663,"month":0.641,"getting":-0.616,"hello":-0.615,"dis":-0.614,"add":-0.613,"asking":-0.613,"ass":-0.613,"bak":-0.613,"chennai":-0.613,"decide":-0.613,"die":-0.613,"different":-0.613,"din":-0.613,"excellent":-0.613,"frm":-0.613,"izzit":-0.613,"light":-0.613,"lovely":-0.613,"mon":-0.613,"monday":-0.613,"oops":-0.613,"orchard":-0.613,"post":-0.613,"pray":-0.613,"reason":-0.613,"rest":-0.613,"telling":-0.613,"uncle":-0.613,"unless":-0.613,"voice":-0.613,"wit":-0.613,"wonder":-0.613,"worried":-0.613,"friend":0.6,"days":0.598,"bank":0.595,"confirm":0.595,"eve":0.595,"heard":0.595,"listen":0.595,"lost":0.595,"somebody":0.595,"support":0.595,"till":0.595,"meet":-0.59,"need":-0.587,"sat":-0.581,"use":0.562,"care":-0.549,"asked":0.542,"life":-0.511,"big":-0.509,"aha":-0.507,"aiyo":-0.507,"angry":-0.507,"bath":-0.507,"bathe":-0.507,"booked":-0.507,"buying":-0.507,"cheers":-0.507,"coffee":-0.507,"daddy":-0.507,"depends":-0.507,"doesnt":-0.507,"eatin":-0.507,"especially":-0.507,"ex":-0.507,"exam":-0.507,"frnds":-0.507,"gas":-0.507,"hiya":-0.507,"hoping":-0.507,"joking":-0.507,"lect":-0.507,"loved":-0.507,"mm":-0.507,"muz":-0.507,"naughty":-0.507,"nigeria":-0.507,"noon":-0.507,"paper":-0.507,"planned":-0.507,"poor":-0.507,"present":-0.507,"quick":-0.507,"reached":-0.507,"safe":-0.507,"shd":-0.507,"smoke":-0.507,"stand":-0.507,"story":-0.507,"sunday":-0.507,"supposed":-0.507,"tampa":-0.507,"th":-0.507,"train":-0.507,"truth":-0.507,"ugh":-0.507,"urself":-0.507,"usf":-0.507,"usual":-0.507,"wasn":-0.507,"weed":-0.507,"wishing":-0.507,"workin":-0.507,"yep":-0.507,"yijue":-0.507,"guys":0.506,"just":0.495,"date":0.489,"forget":0.489,"sort":0.489,"minutes":0.47,"years":0.47,"know":-0.469,"pls":-0.463,"believe":-0.45,"birthday":-0.45,"bored":-0.45,"feeling":-0.45,"walk":-0.45,"sent":0.445,"ready":0.443,"tell":-0.441,"miss":-0.434,"heart":-0.431,"yes":0.416,"yesterday":0.413,"best":0.407,"comes":0.393,"fri":0.393,"needs":0.393,"wow":0.393,"money":-0.392,"email":-0.39,"taking":-0.39,"wants":-0.39,"day":-0.386,"dont":-0.372,"id":0.371,"true":0.371,"dear":0.357,"baby":-0.347,"god":-0.347,"little":-0.347,"guess":0.344,"check":-0.326,"bout":-0.325,"nt":-0.325,"try":0.308,"christmas":0.306,"close":0.306,"door":0.306,"drop":0.306,"gettin":0.306,"interested":0.306,"lots":0.306,"ones":0.306,"st":0.306,"wed":0.306,"wife":0.306,"maybe":-0.303,"time":-0.278,"stay":0.258,"girl":-0.256,"brother":-0.255,"movie":-0.255,"old":-0.255,"sounds":-0.255,"started":-0.255,"place":-0.233,"today":0.208,"town":-0.207,"black":0.188,"fact":0.188,"laugh":0.188,"read":0.188,"ring":0.188,"rock":0.188,"simple":0.188,"tel":0.188,"im":-0.183,"look":-0.182,"fast":-0.181,"hard":-0.181,"missing":-0.181,"used":-0.181},"stats":{"n_messages":5610,"n_spam":871,"n_ham":4739,"accuracy":0.9875,"precision":1.0,"recall":0.9195,"f1":0.9581,"confusion_matrix":[[948,0],[14,160]],"n_train":4488,"n_test":1122,"vocab_size":772}};
+
+const W=MODEL.weights, has=(o,k)=>Object.prototype.hasOwnProperty.call(o,k), $=id=>document.getElementById(id);
+//LOGIC_START
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function norm(w){let s=w.toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'');
+  if(/[a-z]{2,}/.test(s)&&/[0-9@$]/.test(s)) s=s.replace(/0/g,'o').replace(/1/g,'i').replace(/3/g,'e').replace(/4/g,'a').replace(/5/g,'s').replace(/@/g,'a').replace(/\$/g,'s');
+  s=s.replace(/(.)\1{2,}/g,'$1$1'); if(!has(W,s)){const t=s.replace(/(.)\1+/g,'$1'); if(has(W,t)) return t;} return s;}
+const caps=t=>(t.match(/\b[A-Z]{3,}\b/g)||[]).length;
+const RULES=[
+ {l:'Contains a link',w:'Links are the main delivery route for phishing and scams.',p:2.2,f:t=>/(https?:\/\/|www\.)\S+|\b[a-z0-9-]{2,}\.(com|net|org|info|biz|xyz|top|club|online|site|link|ru|tk|cc)\b/i.test(t)},
+ {l:'Shortened link',w:'URL shorteners hide where a link really goes.',p:1.6,f:t=>/\b(bit\.ly|tinyurl|t\.co|goo\.gl|cutt\.ly|is\.gd|rb\.gy)/i.test(t)},
+ {l:'Phone number to call',w:'Long numbers in a message often point to premium-rate lines.',p:1.6,f:t=>/\b0\d{9,}\b|\+?\d[\d\s-]{8,}\d/.test(t)},
+ {l:'Money or currency amount',w:'Spam loves quoting cash amounts and prizes.',p:1.5,f:t=>/[£$€]\s?\d|\bR\s?\d{2,}|\b\d[\d,.]*\s?(pounds|usd|rand|dollars|euros)\b/i.test(t)},
+ {l:'Urgency pressure',w:'Deadlines are used to stop you thinking twice.',p:1.8,f:t=>/\b(urgent|immediately|act now|expires?|last chance|hurry|limited time|final notice|today only|within \d+\s?(hours?|hrs?|mins?)|asap)\b/i.test(t)},
+ {l:'Prize or reward claim',w:'Unprompted winnings are a classic scam hook.',p:2.2,f:t=>/\b(you('ve| have)? won|winner|prize|lottery|jackpot|congratulations|claim|free gift|selected)\b/i.test(t)},
+ {l:'Free offer',w:'"Free" is the most common promotional spam word.',p:1.3,f:t=>/\bfr[e3]{2,}\b/i.test(t)},
+ {l:'Asks you to verify or log in',w:'Phishing tries to get passwords, PINs or card details.',p:2.2,f:t=>/\b(verify|confirm your|suspended|locked|unusual activity|security alert|log ?in|password|cvv|bank details|kyc|account (has been|will be))\b/i.test(t)},
+ {l:'Money or crypto scheme',w:'Investment, inheritance and transfer requests are common frauds.',p:2.2,f:t=>/\b(send money|wire transfer|western union|bitcoin|crypto|guaranteed returns?|inheritance|beneficiary|loan approved|investment)\b/i.test(t)},
+ {l:'Click / reply instruction',w:'Direct calls to action push you to respond right away.',p:1.5,f:t=>/\b(click|tap) (here|the link|below|now)|\breply (stop|yes|y)\b|\btext stop\b|\bstop to (end|opt)/i.test(t)},
+ {l:'SHOUTING in capitals',w:'Several all-caps words is typical of mass-market spam.',p:1.1,f:t=>caps(t)>=3},
+ {l:'Excessive exclamation marks',w:'Repeated !!! adds artificial excitement.',p:.8,f:t=>(t.match(/!/g)||[]).length>=2},
+ {l:'Disguised spelling',w:'Swapping letters for numbers (fr33, cl1ck) dodges filters.',p:1.2,f:t=>/\b[a-z]{2,}[0-9@$][a-z0-9@$]*\b/i.test(t)&&/\b(fr[e3]+|c[l1]ick|w[i1]n|pr[i1]ze|cash|v[i1]agra|l[o0]an)\b/i.test(t)&&/[0-9@$]/.test((t.match(/\b(fr[e3]+|c[l1]ick|w[i1]n|pr[i1]ze|l[o0]an)\b/i)||[''])[0])},
+ {l:'Conversational tone',w:'Short, personal, question-style messages with no links are usually genuine.',p:-1,good:1,f:t=>t.trim().split(/\s+/).length<=18&&/\?|\b(lol|haha|thanks|sorry|see you|hope|dinner|lunch|home)\b/i.test(t)&&!/https?:|www\./i.test(t)}
+];
+function classify(text,ign=new Set()){
+  const seen=new Set(),con=[];let nb=MODEL.base*0.6;
+  for(const tok of (text.match(/[a-z0-9@$]+/gi)||[])){const k=norm(tok);if(seen.has(k)||!has(W,k))continue;seen.add(k);
+    const off=ign.has(k);con.push([k,W[k],off]);if(!off)nb+=W[k];}
+  const flags=RULES.filter(r=>r.f(text));let logit=nb+flags.reduce((a,r)=>a+r.p,0);
+  const p=1/(1+Math.exp(-logit));con.sort((a,b)=>Math.abs(b[1])-Math.abs(a[1]));
+  return {p,con,flags,tier:p>=.65?'spam':p>=.35?'sus':'safe'};
+}
+//LOGIC_END
+const T={spam:{b:'FLAGGED',c:'danger',col:'#ff3b48',s:"Strong spam signals. Don't click links or reply."},
+ sus:{b:'SUSPICIOUS',c:'warn',col:'#d4505b',s:'Mixed signals. Treat with caution and check the sender.'},
+ safe:{b:'CLEAR',c:'safe',col:'#d9d9d9',s:'No strong spam signals found.'}};
+let ign=new Set(),hist=[],cnt={n:0,spam:0,sus:0,safe:0},lastLogged='';
+function annotate(text,r){const map={};r.con.forEach(c=>map[c[0]]=c);let out='',last=0,m;const re=/[a-z0-9@$]+/gi;
+  while((m=re.exec(text))){out+=esc(text.slice(last,m.index));const k=norm(m[0]);
+    if(has(map,k)){const [,v,off]=map[k],a=(.15+.55*Math.min(1,Math.abs(v)/6)).toFixed(2);
+      out+=`<mark data-w="${k}" class="${off?'ign':''}" style="background:${v>0?`rgba(255,59,72,${a})`:`rgba(217,217,217,${a})`}">${esc(m[0])}</mark>`;}
+    else out+=esc(m[0]);last=re.lastIndex;}
+  return out+esc(text.slice(last));}
+function render(){
+  const text=$('msgInput').value;if(!text.trim()){$('result').classList.remove('show');$('counter').textContent='Live scan: starts as you type';return;}
+  const r=classify(text,ign),t=T[r.tier],risk=Math.round(r.p*100);
+  $('counter').textContent=text.trim().split(/\s+/).length+' words scanned';
+  $('verdictBadge').textContent=t.b;$('verdictBadge').className='verdict-badge '+t.c;$('verdictSub').textContent=t.s+' Risk score '+risk+'/100.';
+  $('gaugeLabel').textContent=risk;const arc=$('gaugeArc'),C=2*Math.PI*45;arc.style.stroke=t.col;arc.setAttribute('stroke-dasharray',C);
+  arc.style.transition='stroke-dashoffset .5s ease, stroke .3s';arc.setAttribute('stroke-dashoffset',C*(1-r.p));
+  $('pin').style.left='calc('+risk+'% - 2px)';
+  $('annotated').innerHTML=annotate(text,r);
+  $('flags').innerHTML=r.flags.length?r.flags.map(f=>`<div class="flag ${f.good?'good':''}"><b>${f.l}</b><span>${f.w}</span></div>`).join(''):'<div class="flag good"><b>No red flags</b><span>No links, urgency, or phishing wording detected.</span></div>';
+  const top=r.con.filter(c=>!c[2]).slice(0,6),mx=Math.max(1,...top.map(c=>Math.abs(c[1])));
+  $('bars').innerHTML=top.length?top.map(([w,v])=>`<div class="bar"><span>${w}</span><div><i style="width:${Math.abs(v)/mx*100}%;background:${v>0?'#ff3b48':'#d9d9d9'}"></i></div><span>${v>0?'+':''}${v.toFixed(1)}</span></div>`).join(''):'<span class="keyhint">No known trigger words. Verdict relies on the model baseline and red flags.</span>';
+  $('result').classList.add('show');
+}
+function log(){const text=$('msgInput').value.trim();if(!text||text===lastLogged)return;lastLogged=text;const r=classify(text);
+  cnt.n++;cnt[r.tier]++;hist.unshift({text,r});hist=hist.slice(0,6);drawHist();}
+function pill(r){return `<span class="pill ${r.tier}">${T[r.tier].b}</span>`}
+function drawHist(){$('sN').textContent=cnt.n;$('sS').textContent=cnt.spam;$('sU').textContent=cnt.sus;$('sC').textContent=cnt.safe;
+  $('history').innerHTML=hist.map(h=>`<div class="hrow">${pill(h.r)}<span class="t">${esc(h.text)}</span><span class="keyhint">${Math.round(h.r.p*100)}/100</span></div>`).join('');}
+let tm,tl;
+$('msgInput').addEventListener('input',()=>{ign.clear();render();clearTimeout(tl);tl=setTimeout(log,1000);});
+$('annotated').addEventListener('click',e=>{const k=e.target.dataset&&e.target.dataset.w;if(!k)return;ign.has(k)?ign.delete(k):ign.add(k);render();});
+$('clearBtn').addEventListener('click',()=>{$('msgInput').value='';ign.clear();render();});
+document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{$('msgInput').value=c.dataset.msg;ign.clear();render();log();}));
+document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===b));
+  $('single').style.display=b.dataset.t==='single'?'block':'none';$('batch').style.display=b.dataset.t==='batch'?'block':'none';}));
+let rows=[];
+$('batchBtn').addEventListener('click',()=>{rows=$('batchInput').value.split('\n').map(s=>s.trim()).filter(Boolean).map(t=>({t,r:classify(t)}));
+  rows.forEach(x=>{cnt.n++;cnt[x.r.tier]++;});drawHist();
+  $('batchOut').innerHTML=rows.map(x=>`<div class="brow">${pill(x.r)}<span class="t">${esc(x.t)}</span><span class="keyhint">${Math.round(x.r.p*100)}/100</span></div>`).join('')||'<span class="keyhint">Nothing to scan yet.</span>';});
+$('csvBtn').addEventListener('click',()=>{const msg=$('csvMsg'),box=$('csvBox');
+  if(!rows.length){msg.textContent='Click "Scan all" first, then export.';return;}
+  const q=x=>'"'+x.replace(/"/g,'""')+'"';
+  const csv='verdict,risk_score,message\n'+rows.map(x=>[T[x.r.tier].b,Math.round(x.r.p*100),q(x.t)].join(',')).join('\n');
+  try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='spamguard-results.csv';
+    document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);}catch(e){}
+  try{navigator.clipboard.writeText(csv);}catch(e){}
+  box.value=csv;box.style.display='block';box.select();
+  msg.textContent='Saving spamguard-results.csv. If no file appears (some viewers block downloads), the results are copied and shown below: paste them into Excel or a .csv file.';});
+const s=MODEL.stats,pc=v=>Math.round(v*100)+'%';
+[['hAcc','accuracy'],['hPrec','precision'],['statAcc','accuracy'],['statPrec','precision'],['statRec','recall'],['statF1','f1']].forEach(([i,k])=>$(i).textContent=pc(s[k]));
+$('hMsgs').textContent=s.n_messages.toLocaleString();
+$('cmTN').textContent=s.confusion_matrix[0][0];$('cmFP').textContent=s.confusion_matrix[0][1];$('cmFN').textContent=s.confusion_matrix[1][0];$('cmTP').textContent=s.confusion_matrix[1][1];
+
+</script>
+</body>
+</html>
